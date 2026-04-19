@@ -153,14 +153,14 @@ emergency_access_peru/
 
 ---
 
-## Main findings
+## Principales hallazgos
 
-*(To be completed after running the pipeline with the actual data.)*
-
-Preliminary expectations based on methodology:
-- Districts in Lima, Arequipa, and other major cities will score highest on the IASE.
-- Rural districts in Loreto, Ucayali, Puno, and Cajamarca are expected to show the lowest access scores due to low facility density and large distances from populated centers.
-- The alternative specification (higher weight on spatial access) will likely shift some peri-urban districts down in the ranking, as they may have few facilities despite being relatively close to larger urban centers.
+- **55 distritos** no tienen ningún centro de salud registrado
+- Distancia mediana al centro de salud más cercano: **3.6 km**
+- Puntuación IASE promedio nacional: **0.161**
+- **Mejor acceso:** Arequipa, Callería (Ucayali), ICA, Lima y Mazamari-Pangoa (Junín)
+- **Peor acceso:** Chisquilla y Shipasbamba (Amazonas), Calango y Andajes (Lima sierra)
+- La especificación alternativa penaliza más fuertemente a zonas rurales dispersas donde los centros poblados están lejos de cualquier establecimiento de salud
 
 ---
 
