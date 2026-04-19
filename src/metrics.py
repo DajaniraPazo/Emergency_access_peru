@@ -174,8 +174,12 @@ def get_top_bottom(
 
 
 def save_district_table(gdf: gpd.GeoDataFrame) -> None:
-    """Guarda la tabla distrital final en output/tables/."""
+    """Guarda la tabla distrital final en output/tables/ y sobreescribe el GPKG con los scores IASE."""
+    from src.utils import PROCESSED_DIR
     cols = [c for c in gdf.columns if c != "geometry"]
     df = gdf[cols].copy()
     df.to_csv(TABLES_DIR / "district_iase_table.csv", index=False)
     log.info("Tabla distrital final guardada en output/tables/district_iase_table.csv")
+    # Re-save GPKG so the geometry file includes IASE scores for the interactive maps
+    gdf.to_file(PROCESSED_DIR / "district_summary.gpkg", driver="GPKG")
+    log.info("GPKG distrital actualizado con scores IASE en data/processed/")

@@ -86,7 +86,7 @@ def _check_data():
 def _show_image(filename: str):
     path = FIGURES_DIR / filename
     if path.exists():
-        st.image(str(path), use_column_width=True)
+        st.image(str(path), use_container_width=True)
     else:
         st.warning(f"Imagen no generada aún: {filename}")
 

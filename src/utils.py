@@ -30,6 +30,8 @@ CRS_PROJ = "EPSG:32718"     # UTM Zona 18S – métrico para Perú (distancias e
 IPRESS_COL_MAP = {
     "codigo_renaes": "id_ipress",
     "codigo": "id_ipress",
+    "código único": "id_ipress",
+    "codigo unico": "id_ipress",
     "nombre": "nombre_ipress",
     "nombre_ipress": "nombre_ipress",
     "departamento": "departamento",
@@ -44,11 +46,14 @@ IPRESS_COL_MAP = {
     "lon": "longitud",
     "lng": "longitud",
     "estado": "estado",
+    "norte": "longitud",
+    "este": "latitud",
 }
 
 EMERGENCIAS_COL_MAP = {
     "codigo_renaes": "id_ipress",
     "codigo": "id_ipress",
+    "co_ipress": "id_ipress",
     "nombre_ipress": "nombre_ipress",
     "nombre": "nombre_ipress",
     "departamento": "departamento",
@@ -92,6 +97,7 @@ CENTROS_COL_MAP = {
 DISTRITOS_COL_MAP = {
     "ubigeo": "ubigeo",
     "iddist": "ubigeo",
+    "codccpp": "ubigeo",
     "cod_dist": "ubigeo",
     "departamen": "departamento",
     "departamento": "departamento",

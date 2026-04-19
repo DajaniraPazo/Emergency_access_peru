@@ -47,7 +47,16 @@ def clean_ipress(df: pd.DataFrame) -> pd.DataFrame:
     # Eliminar filas sin coordenadas
     df = df.dropna(subset=["latitud", "longitud"])
 
-    # Bbox de Perú: lat [-18.4, -0.0], lon [-81.5, -68.7]
+    # Detectar si son coordenadas UTM (valores > 1000) o geográficas
+    if df["latitud"].abs().max() > 1000:
+        import pyproj
+        transformer = pyproj.Transformer.from_crs("EPSG:32718", "EPSG:4326", always_xy=True)
+        lon_new, lat_new = transformer.transform(
+            df["longitud"].values, df["latitud"].values
+        )
+        df["longitud"] = lon_new
+        df["latitud"] = lat_new
+
     mask_valid = (
         df["latitud"].between(-18.4, 0.0) &
         df["longitud"].between(-81.5, -68.7)
@@ -55,12 +64,12 @@ def clean_ipress(df: pd.DataFrame) -> pd.DataFrame:
     df = df[mask_valid].copy()
     log.info(f"IPRESS: {n_inicial} → {len(df)} filas tras filtrar coords inválidas")
 
-    # Filtrar solo activos
+    # Excluir inactivos (conserva ACTIVADO, ACTIVO, etc.)
     if "estado" in df.columns:
         df["estado"] = df["estado"].astype(str).str.upper().str.strip()
         n_antes = len(df)
-        df = df[df["estado"].isin(["ACTIVO", "1", "ACTIVE"])].copy()
-        log.info(f"IPRESS: {n_antes} → {len(df)} filas tras filtrar ACTIVOS")
+        df = df[~df["estado"].str.contains("INACTI", na=False)].copy()
+        log.info(f"IPRESS: {n_antes} → {len(df)} filas tras excluir INACTIVOS")
 
     # Eliminar duplicados
     if "id_ipress" in df.columns:
@@ -113,7 +122,14 @@ def clean_emergencias(df: pd.DataFrame) -> pd.DataFrame:
     df = df[df["emergencias"].notna() & (df["emergencias"] >= 0)].copy()
 
     # Agrupación por establecimiento
-    group_cols = ["id_ipress"]
+    if "id_ipress" in df.columns:
+        group_cols = ["id_ipress"]
+    elif "ubigeo" in df.columns:
+        group_cols = ["ubigeo"]
+        log.warning("id_ipress no encontrado en emergencias; agrupando por ubigeo.")
+    else:
+        raise ValueError("No se encontró columna de agrupación (id_ipress o ubigeo) en emergencias.")
+
     if "ubigeo" in df.columns:
         df["ubigeo"] = df["ubigeo"].astype(str).str.zfill(6)
 
@@ -211,7 +227,8 @@ def clean_distritos(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         )
 
     if "ubigeo" in gdf.columns:
-        gdf["ubigeo"] = gdf["ubigeo"].astype(str).str.zfill(6)
+        gdf = gdf.loc[:, ~gdf.columns.duplicated()]
+        gdf["ubigeo"] = gdf["ubigeo"].apply(lambda x: str(x).zfill(6))
 
     # Eliminar geometrías inválidas
     n_antes = len(gdf)

@@ -1,0 +1,21 @@
+archivo,variable,tipo,descripcion
+ipress_clean.csv,id_ipress,str,Código RENAES del establecimiento
+ipress_clean.csv,nombre_ipress,str,Nombre del establecimiento de salud
+ipress_clean.csv,ubigeo,str,Código ubigeo de 6 dígitos (distrittal)
+ipress_clean.csv,departamento,str,Nombre del departamento
+ipress_clean.csv,provincia,str,Nombre de la provincia
+ipress_clean.csv,distrito,str,Nombre del distrito
+ipress_clean.csv,categoria,str,Categoría del establecimiento (I-1 … III-E)
+ipress_clean.csv,latitud,float,Latitud WGS84 (negativa en hemisferio sur)
+ipress_clean.csv,longitud,float,"Longitud WGS84 (negativa, Perú)"
+emergencias_clean.csv,id_ipress,str,Código RENAES del establecimiento
+emergencias_clean.csv,total_emergencias,int,Total de atenciones de emergencia registradas
+emergencias_clean.csv,ubigeo,str,Código ubigeo distrital
+centros_poblados_clean.csv,ubigeo,str,Código ubigeo del distrito al que pertenece
+centros_poblados_clean.csv,nombre_ccpp,str,Nombre del centro poblado
+centros_poblados_clean.csv,latitud,float,Latitud WGS84
+centros_poblados_clean.csv,longitud,float,Longitud WGS84
+distritos_clean.gpkg,ubigeo,str,Código ubigeo distrital de 6 dígitos
+distritos_clean.gpkg,departamento,str,Nombre del departamento
+distritos_clean.gpkg,distrito,str,Nombre del distrito
+distritos_clean.gpkg,geometry,Polygon,Límite distrital en WGS84

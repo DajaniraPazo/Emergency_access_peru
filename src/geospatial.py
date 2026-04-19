@@ -60,6 +60,13 @@ def join_points_to_districts(
     )
     joined = joined.drop(columns=["index_right"], errors="ignore")
 
+    # Normalise ubigeo column name: sjoin adds _right suffix when gdf_points already has it
+    if district_ubigeo_col not in joined.columns:
+        right_col = f"{district_ubigeo_col}_right"
+        if right_col in joined.columns:
+            joined = joined.rename(columns={right_col: district_ubigeo_col})
+            joined = joined.drop(columns=[f"{district_ubigeo_col}_left"], errors="ignore")
+
     # Fallback nearest para puntos sin distrito asignado
     sin_distrito = joined[joined[district_ubigeo_col].isna()].drop(
         columns=[district_ubigeo_col], errors="ignore"
@@ -75,6 +82,12 @@ def join_points_to_districts(
             how="left",
         )
         fallback = fallback.drop(columns=["index_right"], errors="ignore")
+        # Normalise suffix in fallback result as well
+        if district_ubigeo_col not in fallback.columns:
+            right_col = f"{district_ubigeo_col}_right"
+            if right_col in fallback.columns:
+                fallback = fallback.rename(columns={right_col: district_ubigeo_col})
+                fallback = fallback.drop(columns=[f"{district_ubigeo_col}_left"], errors="ignore")
         joined.update(fallback[[district_ubigeo_col]])
 
     assigned = joined[district_ubigeo_col].notna().sum()
