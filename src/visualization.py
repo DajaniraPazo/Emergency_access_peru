@@ -45,17 +45,17 @@ def plot_facility_distribution(dist_gdf: gpd.GeoDataFrame, save: bool = True):
 
     axes[0].hist(data, bins=40, color="#2171b5", edgecolor="white", alpha=0.85)
     axes[0].axvline(data.median(), color="#d62728", linestyle="--", label=f"Mediana: {data.median():.0f}")
-    axes[0].set_title("Distribución: N° de IPRESS por distrito")
-    axes[0].set_xlabel("N° de establecimientos IPRESS")
+    axes[0].set_title("Distribución: N° de centros de salud (IPRESS) por distrito")
+    axes[0].set_xlabel("N° de centros de salud (IPRESS) en el distrito")
     axes[0].set_ylabel("N° de distritos")
     axes[0].legend()
 
     axes[1].boxplot(data, vert=True, patch_artist=True,
                     boxprops=dict(facecolor="#a6cee3"), medianprops=dict(color="#d62728", linewidth=2))
-    axes[1].set_title("Dispersión: N° de IPRESS por distrito")
-    axes[1].set_ylabel("N° de establecimientos IPRESS")
+    axes[1].set_title("Dispersión: N° de centros de salud (IPRESS) por distrito")
+    axes[1].set_ylabel("N° de centros de salud (IPRESS)")
 
-    plt.suptitle("Q1 – Disponibilidad territorial de establecimientos IPRESS", fontweight="bold")
+    plt.suptitle("Q1 – ¿Cuántos centros de salud (IPRESS) tiene cada distrito?", fontweight="bold")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / "01_facility_distribution.png", dpi=150, bbox_inches="tight")
@@ -82,8 +82,8 @@ def plot_emergency_activity(dist_gdf: gpd.GeoDataFrame, save: bool = True):
         color="#2ca02c", alpha=0.85,
     )
     axes[0].invert_yaxis()
-    axes[0].set_title("Top 20 distritos – Total emergencias")
-    axes[0].set_xlabel("Total atenciones de emergencia")
+    axes[0].set_title("Top 20 distritos con más atenciones de emergencia")
+    axes[0].set_xlabel("Total de atenciones de emergencia registradas")
 
     # Scatter: n_ipress vs emergencias
     axes[1].scatter(
@@ -91,11 +91,11 @@ def plot_emergency_activity(dist_gdf: gpd.GeoDataFrame, save: bool = True):
         dist_gdf["total_emergencias"],
         alpha=0.4, s=15, color="#1f77b4",
     )
-    axes[1].set_xlabel("N° de IPRESS")
-    axes[1].set_ylabel("Total emergencias atendidas")
-    axes[1].set_title("IPRESS vs Actividad de emergencias")
+    axes[1].set_xlabel("N° de centros de salud (IPRESS) en el distrito")
+    axes[1].set_ylabel("Total de emergencias atendidas")
+    axes[1].set_title("¿Más centros de salud (IPRESS) implica más atenciones?")
 
-    plt.suptitle("Q1 – Actividad asistencial de emergencia por distrito", fontweight="bold")
+    plt.suptitle("Q1 – ¿Qué distritos atienden más emergencias?", fontweight="bold")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / "02_emergency_activity.png", dpi=150, bbox_inches="tight")
@@ -117,21 +117,21 @@ def plot_distance_distribution(dist_gdf: gpd.GeoDataFrame, save: bool = True):
     sns.histplot(data, bins=40, kde=True, ax=axes[0], color="#e6550d")
     axes[0].axvline(data.median(), color="#2171b5", linestyle="--",
                     label=f"Mediana: {data.median():.1f} km")
-    axes[0].set_title("Distancia media al IPRESS más cercano")
-    axes[0].set_xlabel("Distancia media (km)")
+    axes[0].set_title("Distancia promedio al centro de salud (IPRESS) más cercano")
+    axes[0].set_xlabel("Distancia promedio (km) al centro de salud más cercano")
     axes[0].set_ylabel("N° de distritos")
     axes[0].legend()
 
     # % de centros a más de 10 km
     pct_data = dist_gdf["pct_centros_lejanos"].dropna()
     sns.histplot(pct_data, bins=30, kde=False, ax=axes[1], color="#756bb1")
-    axes[1].axvline(50, color="#d62728", linestyle="--", label="50% de CCPP a >10 km")
-    axes[1].set_title("% de centros poblados a más de 10 km de una IPRESS")
-    axes[1].set_xlabel("% de centros poblados lejanos")
+    axes[1].axvline(50, color="#d62728", linestyle="--", label="50% de comunidades a más de 10 km")
+    axes[1].set_title("% de comunidades (centros poblados) a más de 10 km de un centro de salud")
+    axes[1].set_xlabel("% de comunidades (centros poblados) lejanas")
     axes[1].set_ylabel("N° de distritos")
     axes[1].legend()
 
-    plt.suptitle("Q2 – Acceso espacial de los centros poblados a servicios de emergencia", fontweight="bold")
+    plt.suptitle("Q2 – ¿Qué tan lejos viven las comunidades del centro de salud más cercano?", fontweight="bold")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / "03_distance_distribution.png", dpi=150, bbox_inches="tight")
@@ -152,7 +152,11 @@ def plot_component_correlation(dist_gdf: gpd.GeoDataFrame, save: bool = True):
         return None
 
     df = dist_gdf[comp_cols].dropna()
-    labels = {"facility_score": "Disponibilidad", "activity_score": "Actividad", "access_score": "Acceso espacial"}
+    labels = {
+        "facility_score": "Disponibilidad (N° centros de salud)",
+        "activity_score": "Actividad (emergencias atendidas)",
+        "access_score": "Acceso espacial (distancia inversa)",
+    }
     df = df.rename(columns=labels)
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
@@ -161,14 +165,14 @@ def plot_component_correlation(dist_gdf: gpd.GeoDataFrame, save: bool = True):
     mask = np.triu(np.ones_like(corr, dtype=bool))
     sns.heatmap(corr, ax=axes[0], annot=True, fmt=".2f", cmap="RdYlGn",
                 vmin=-1, vmax=1, mask=mask, square=True, linewidths=0.5)
-    axes[0].set_title("Correlación entre componentes del IASE")
+    axes[0].set_title("Relación entre los tres componentes del índice (IASE)")
 
     axes[1].scatter(df.iloc[:, 0], df.iloc[:, 1], alpha=0.3, s=10, color="#1f77b4")
     axes[1].set_xlabel(df.columns[0])
     axes[1].set_ylabel(df.columns[1])
     axes[1].set_title(f"{df.columns[0]} vs {df.columns[1]}")
 
-    plt.suptitle("Q3 – Coherencia entre componentes del índice IASE", fontweight="bold")
+    plt.suptitle("Q3 – ¿Los tres componentes del índice (IASE) miden cosas distintas?", fontweight="bold")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / "04_component_correlation.png", dpi=150, bbox_inches="tight")
@@ -188,7 +192,15 @@ def plot_top_bottom_districts(dist_gdf: gpd.GeoDataFrame, score_col: str = "IASE
 
     sorted_gdf = dist_gdf.sort_values(score_col, ascending=False).reset_index(drop=True)
     top = sorted_gdf.head(n)
-    bottom = sorted_gdf.tail(n).sort_values(score_col, ascending=True)
+
+    # Excluir distritos sin ningún dato registrado (IASE = 0 por ausencia de datos,
+    # no por bajo acceso real) para que el gráfico bottom sea informativo
+    has_data = (sorted_gdf["n_ipress"] > 0) | (
+        sorted_gdf["n_centros"] > 0 if "n_centros" in sorted_gdf.columns
+        else pd.Series(False, index=sorted_gdf.index)
+    )
+    n_sin_datos = int((~has_data).sum())
+    bottom = sorted_gdf[has_data].tail(n).sort_values(score_col, ascending=True)
 
     def _label(row):
         name = str(row[id_col])
@@ -198,15 +210,26 @@ def plot_top_bottom_districts(dist_gdf: gpd.GeoDataFrame, score_col: str = "IASE
 
     axes[0].barh([_label(r) for _, r in top.iterrows()], top[score_col], color="#1a9641", alpha=0.85)
     axes[0].invert_yaxis()
-    axes[0].set_title(f"Top {n} – Mejor acceso a emergencias")
-    axes[0].set_xlabel(score_col)
+    axes[0].set_xlim(left=0)
+    axes[0].set_title(f"Top {n} – Distritos con mejor acceso a emergencias")
+    axes[0].set_xlabel("Puntuación del índice de acceso (IASE)")
 
     axes[1].barh([_label(r) for _, r in bottom.iterrows()], bottom[score_col], color="#d7191c", alpha=0.85)
     axes[1].invert_yaxis()
-    axes[1].set_title(f"Bottom {n} – Peor acceso a emergencias")
-    axes[1].set_xlabel(score_col)
+    # Zoom al rango real para que barras pequeñas sean visibles
+    max_bottom = bottom[score_col].max()
+    axes[1].set_xlim(left=0, right=max(max_bottom * 1.2, 1e-3))
+    axes[1].set_title(f"Últimos {n} – Distritos con menor acceso a emergencias\n(con datos registrados)")
+    axes[1].set_xlabel("Puntuación del índice de acceso (IASE)")
+    if n_sin_datos > 0:
+        axes[1].annotate(
+            f"Nota: {n_sin_datos} distritos sin ningún dato registrado\nno se incluyen en este gráfico.",
+            xy=(0.98, 0.03), xycoords="axes fraction",
+            ha="right", va="bottom", fontsize=8, color="grey",
+            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="lightgrey", alpha=0.8),
+        )
 
-    plt.suptitle("Q3 – Ranking distrital de acceso a servicios de emergencia (IASE)", fontweight="bold")
+    plt.suptitle("Q3 – Ranking de distritos por acceso a servicios de emergencia (IASE)", fontweight="bold")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / "05_top_bottom_districts.png", dpi=150, bbox_inches="tight")
@@ -229,22 +252,22 @@ def plot_baseline_vs_alternative(comparison_df: pd.DataFrame, save: bool = True)
                         alpha=0.3, s=10, color="#1f77b4")
         mn = min(comparison_df["IASE_base"].min(), comparison_df["IASE_alt"].min())
         mx = max(comparison_df["IASE_base"].max(), comparison_df["IASE_alt"].max())
-        axes[0].plot([mn, mx], [mn, mx], "r--", linewidth=1, label="Línea 45°")
-        axes[0].set_xlabel("IASE Baseline (pesos iguales)")
-        axes[0].set_ylabel("IASE Alternativa (mayor peso acceso)")
-        axes[0].set_title("Concordancia entre especificaciones")
+        axes[0].plot([mn, mx], [mn, mx], "r--", linewidth=1, label="Línea de igualdad")
+        axes[0].set_xlabel("IASE versión base (pesos iguales entre componentes)")
+        axes[0].set_ylabel("IASE versión alternativa (mayor peso en distancia al centro de salud)")
+        axes[0].set_title("Concordancia entre las dos versiones del índice")
         axes[0].legend()
 
     if "rank_change" in comparison_df.columns:
         sns.histplot(comparison_df["rank_change"], bins=40, kde=False,
                      ax=axes[1], color="#9467bd")
-        axes[1].axvline(0, color="red", linestyle="--", label="Sin cambio")
-        axes[1].set_title("Cambio de rango: Baseline → Alternativa")
-        axes[1].set_xlabel("Cambio de rango (positivo = mejora)")
+        axes[1].axvline(0, color="red", linestyle="--", label="Sin cambio de posición")
+        axes[1].set_title("Cambio de posición en el ranking: versión base → alternativa")
+        axes[1].set_xlabel("Cambio de posición (positivo = sube en el ranking)")
         axes[1].set_ylabel("N° de distritos")
         axes[1].legend()
 
-    plt.suptitle("Q4 – Sensibilidad metodológica: baseline vs especificación alternativa", fontweight="bold")
+    plt.suptitle("Q4 – ¿Cambian los resultados si le damos más peso a la distancia al centro de salud?", fontweight="bold")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / "06_baseline_vs_alternative.png", dpi=150, bbox_inches="tight")
@@ -270,7 +293,7 @@ def _choropleth(gdf, col, title, cmap, ax, label=""):
 def map_facility_density(dist_gdf: gpd.GeoDataFrame, save: bool = True):
     """Mapa coroplético: número de IPRESS por distrito."""
     fig, ax = plt.subplots(figsize=(9, 12))
-    _choropleth(dist_gdf, "n_ipress", "N° de IPRESS por distrito", "YlOrRd", ax, "N° IPRESS")
+    _choropleth(dist_gdf, "n_ipress", "N° de centros de salud (IPRESS) por distrito", "YlOrRd", ax, "N° centros de salud")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / "map_01_facility_density.png", dpi=150, bbox_inches="tight")
@@ -281,8 +304,8 @@ def map_facility_density(dist_gdf: gpd.GeoDataFrame, save: bool = True):
 def map_distance_access(dist_gdf: gpd.GeoDataFrame, save: bool = True):
     """Mapa coroplético: distancia media al IPRESS más cercano."""
     fig, ax = plt.subplots(figsize=(9, 12))
-    _choropleth(dist_gdf, "dist_media_km", "Distancia media al IPRESS más cercano (km)",
-                "RdYlGn_r", ax, "km")
+    _choropleth(dist_gdf, "dist_media_km", "Distancia promedio al centro de salud (IPRESS) más cercano (km)",
+                "RdYlGn_r", ax, "km (distancia promedio)")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / "map_02_distance_access.png", dpi=150, bbox_inches="tight")
@@ -297,7 +320,7 @@ def map_iase(dist_gdf: gpd.GeoDataFrame, score_col: str = "IASE_base",
 
     # Mapa continuo
     _choropleth(dist_gdf, score_col,
-                f"{score_col} – Score continuo", "RdYlGn", axes[0], "Score")
+                f"{score_col} – Puntuación continua", "RdYlGn", axes[0], "Puntuación IASE")
 
     # Mapa discreto por clase
     if clase_col in dist_gdf.columns:
@@ -306,11 +329,11 @@ def map_iase(dist_gdf: gpd.GeoDataFrame, score_col: str = "IASE_base",
         gdf["_color"] = gdf[clase_col].map(color_map).fillna("lightgrey")
         gdf.plot(color=gdf["_color"], ax=axes[1], linewidth=0.2, edgecolor="grey")
         patches = [mpatches.Patch(color=color_map[c], label=c) for c in QUINTILE_ORDER]
-        axes[1].legend(handles=patches, loc="lower left", title="Clase IASE", fontsize=9)
-        axes[1].set_title(f"{clase_col} – Clasificación por quintiles", fontsize=12, fontweight="bold")
+        axes[1].legend(handles=patches, loc="lower left", title="Nivel de acceso", fontsize=9)
+        axes[1].set_title(f"{clase_col} – Clasificación por niveles de acceso", fontsize=12, fontweight="bold")
         axes[1].axis("off")
 
-    plt.suptitle("Q3 – Índice de Acceso a Servicios de Emergencia (IASE)", fontsize=14, fontweight="bold")
+    plt.suptitle("Q3 – Índice de Acceso a Servicios de Emergencia (IASE) por distrito", fontsize=14, fontweight="bold")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / f"map_03_{score_col}.png", dpi=150, bbox_inches="tight")
@@ -322,8 +345,8 @@ def map_comparison(dist_gdf: gpd.GeoDataFrame, save: bool = True):
     """Mapas lado a lado: baseline vs alternativa."""
     fig, axes = plt.subplots(1, 2, figsize=(18, 12))
     for ax, col, title in [
-        (axes[0], "IASE_base", "Baseline\n(pesos iguales 1/3)"),
-        (axes[1], "IASE_alt", "Alternativa\n(acceso: 50%, disp: 25%, act: 25%)"),
+        (axes[0], "IASE_base", "Versión base\n(pesos iguales, 1/3 por componente)"),
+        (axes[1], "IASE_alt", "Versión alternativa\n(distancia: 50%, disponibilidad: 25%, actividad: 25%)"),
     ]:
         if col in dist_gdf.columns:
             _choropleth(dist_gdf, col, title, "RdYlGn", ax, "Score")
@@ -331,7 +354,7 @@ def map_comparison(dist_gdf: gpd.GeoDataFrame, save: bool = True):
             ax.set_title(f"{col} no calculado")
             ax.axis("off")
 
-    plt.suptitle("Q4 – Comparación baseline vs especificación alternativa", fontsize=14, fontweight="bold")
+    plt.suptitle("Q4 – Comparación entre versión base y versión alternativa del índice", fontsize=14, fontweight="bold")
     plt.tight_layout()
     if save:
         fig.savefig(FIGURES_DIR / "map_04_comparison.png", dpi=150, bbox_inches="tight")
@@ -371,8 +394,8 @@ def folium_iase_map(dist_gdf: gpd.GeoDataFrame, score_col: str = "IASE_base") ->
         fill_color="RdYlGn",
         fill_opacity=0.7,
         line_opacity=0.2,
-        legend_name=f"IASE ({score_col})",
-        name="IASE",
+        legend_name=f"Índice de acceso a emergencias ({score_col})",
+        name="Índice de acceso (IASE)",
     ).add_to(m)
 
     # Tooltips individuales
@@ -386,7 +409,7 @@ def folium_iase_map(dist_gdf: gpd.GeoDataFrame, score_col: str = "IASE_base") ->
         gdf[tooltip_cols + ["geometry"]],
         style_function=style_fn,
         tooltip=tooltip,
-        name="Info distritos",
+        name="Información por distrito",
     ).add_to(m)
 
     folium.LayerControl().add_to(m)
@@ -414,12 +437,12 @@ def folium_facilities_map(
             fill_color="RdYlGn",
             fill_opacity=0.5,
             line_opacity=0.1,
-            legend_name="IASE Baseline",
-            name="IASE",
+            legend_name="Índice de acceso a emergencias (IASE base)",
+            name="Índice de acceso (IASE)",
         ).add_to(m)
 
     # Markers de IPRESS
-    cluster = MarkerCluster(name="Establecimientos IPRESS").add_to(m)
+    cluster = MarkerCluster(name="Centros de salud (IPRESS)").add_to(m)
     ipress_4326 = ipress_gdf.to_crs("EPSG:4326") if ipress_gdf.crs else ipress_gdf
 
     for _, row in ipress_4326.iterrows():

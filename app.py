@@ -86,7 +86,7 @@ def _check_data():
 def _show_image(filename: str):
     path = FIGURES_DIR / filename
     if path.exists():
-        st.image(str(path), use_container_width=True)
+        st.image(str(path))
     else:
         st.warning(f"Imagen no generada aún: {filename}")
 
@@ -113,7 +113,7 @@ with st.sidebar:
     )
     st.markdown("---")
     st.caption("Curso: Python / Data Science")
-    st.caption("Datasets: MINSA IPRESS · Emergencias · INEI Centros Poblados · DISTRITOS.shp")
+    st.caption("Datos: centros de salud IPRESS (MINSA) · Emergencias · Comunidades INEI · Límites distritales")
 
     data_ok = _check_data()
     if data_ok:
@@ -145,25 +145,25 @@ with tab1:
         st.markdown(
             """
             El acceso a servicios de emergencia en salud varía significativamente entre
-            los **1,874 distritos del Perú**. Factores como la densidad de establecimientos,
-            la actividad asistencial registrada, y la distancia física desde los centros
-            poblados hacia los establecimientos determinan qué tan bien atendida está la
-            población ante una emergencia médica.
+            los **1,874 distritos del Perú**. Factores como la cantidad de centros de salud
+            (IPRESS), el volumen de atenciones registradas, y la distancia física desde las
+            comunidades (centros poblados) hacia los establecimientos determinan qué tan bien
+            atendida está la población ante una emergencia médica.
 
-            **Pregunta central:** ¿Qué distritos aparecen en condiciones relativamente
-            mejores o peores de acceso a servicios de emergencia, y qué evidencia lo sustenta?
+            **Pregunta central:** ¿Qué distritos tienen mejores o peores condiciones de
+            acceso a servicios de emergencia, y qué evidencia lo respalda?
             """
         )
 
         st.subheader("Fuentes de datos")
         st.markdown(
             """
-            | Dataset | Fuente | Variables clave |
-            |---------|--------|-----------------|
-            | IPRESS | MINSA / datos.gob.pe | Establecimientos, coordenadas, categoría |
-            | Producción de emergencias | datos.gob.pe | Atenciones de emergencia por IPRESS |
-            | Centros Poblados | INEI | Coordenadas de asentamientos |
-            | DISTRITOS.shp | MINSA GIS / IGN | Límites distritales |
+            | Conjunto de datos | Fuente | Variables principales |
+            |-------------------|--------|-----------------------|
+            | IPRESS (centros de salud) | MINSA / datos.gob.pe | Nombre, ubicación GPS, categoría del establecimiento |
+            | Producción de emergencias | datos.gob.pe | N° de atenciones de emergencia por centro de salud |
+            | Centros Poblados (comunidades) | INEI | Nombre y coordenadas de cada asentamiento |
+            | DISTRITOS.shp (límites distritales) | MINSA GIS / IGN | Polígonos de los 1,874 distritos del Perú |
             """
         )
 
@@ -171,34 +171,36 @@ with tab1:
         st.subheader("Decisiones de limpieza")
         st.markdown(
             """
-            - **IPRESS:** se eliminaron registros sin coordenadas válidas dentro del bounding box
-              de Perú (lat: -18.4 a 0, lon: -81.5 a -68.7). Se filtraron solo establecimientos activos.
-            - **Emergencias:** se agruparon por establecimiento (suma histórica total).
-            - **Centros Poblados:** se descartaron los sin coordenadas o fuera del territorio peruano.
-            - **Distritos:** se corrigieron geometrías inválidas con `buffer(0)`.
-            - **CRS:** todos los datos se cargan en **EPSG:4326 (WGS84)** para visualización.
-              Para el cálculo de distancias se reprojecta a **EPSG:32718 (UTM Zona 18S)**,
-              que minimiza la distorsión métrica en el territorio peruano.
+            - **IPRESS (centros de salud):** se descartaron registros sin coordenadas GPS válidas
+              dentro del territorio peruano. Se mantuvieron solo los establecimientos activos.
+            - **Emergencias:** se sumaron todas las atenciones históricas por cada centro de salud.
+            - **Centros Poblados (comunidades):** se eliminaron los que no tienen coordenadas
+              o están fuera del territorio peruano.
+            - **Distritos:** se corrigieron automáticamente los límites geográficos con problemas
+              de geometría.
+            - **Sistema de coordenadas:** se usa **WGS84 (EPSG:4326)** para mostrar los mapas.
+              Para calcular distancias en kilómetros se usa **UTM Zona 18S (EPSG:32718)**,
+              que reduce la distorsión de medidas en el territorio peruano.
             """
         )
 
         st.subheader("Construcción del IASE")
         st.markdown(
             """
-            El **Índice de Acceso a Servicios de Emergencia (IASE)** combina tres componentes
-            normalizados a [0, 1]:
+            El **IASE (Índice de Acceso a Servicios de Emergencia)** combina tres componentes,
+            cada uno normalizado entre 0 y 1 (donde 1 = mejor situación):
 
-            | Componente | Variable base | Dirección |
-            |------------|---------------|-----------|
-            | **Disponibilidad** | N° de IPRESS en el distrito | Mayor = mejor |
-            | **Actividad** | Total emergencias atendidas | Mayor = mejor |
-            | **Acceso espacial** | 1 – dist_media_km normalizada | Mayor = mejor |
+            | Componente | Qué mide | Interpretación |
+            |------------|----------|----------------|
+            | **Disponibilidad** | N° de centros de salud (IPRESS) en el distrito | Más centros = mejor |
+            | **Actividad** | Total de emergencias atendidas | Más atenciones = mejor |
+            | **Acceso espacial** | Distancia promedio inversa al centro de salud más cercano | Más cerca = mejor |
 
-            **Especificación baseline:** pesos iguales (1/3 cada componente).
+            **Versión base:** los tres componentes tienen el mismo peso (1/3 cada uno).
 
-            **Especificación alternativa:** mayor peso en acceso espacial (facility=0.25,
-            activity=0.25, access=0.50). Justificación: en emergencias médicas el tiempo
-            de traslado es el factor más crítico para la sobrevivencia del paciente.
+            **Versión alternativa:** se le da más peso a la distancia (distancia: 50%,
+            disponibilidad: 25%, actividad: 25%). Justificación: en emergencias médicas,
+            el tiempo de traslado es el factor más crítico para salvar una vida.
             """
         )
 
@@ -206,13 +208,16 @@ with tab1:
     st.subheader("Limitaciones")
     st.markdown(
         """
-        - La distancia calculada es **euclidiana (línea recta)** proyectada, no tiempo de traslado real
-          por carretera o accidentes geográficos.
-        - Los datos de emergencias pueden tener **subregistro** en zonas con menor conectividad al sistema SUSALUD.
-        - No se incorpora información de **población** por distrito (por falta de acceso directo al censo),
-          por lo que los índices son absolutos, no per cápita.
-        - Centros poblados muy pequeños pueden no estar registrados en el dataset del INEI.
-        - La categoría del establecimiento (I-1 a III-E) no se pondera en el índice actual.
+        - La distancia calculada es **en línea recta**, no tiempo de traslado real por carretera
+          o considerando accidentes geográficos como ríos o montañas.
+        - Los datos de emergencias pueden estar **incompletos** en zonas con menor acceso al
+          sistema de registro del MINSA/SUSALUD.
+        - No se incluye información de **población** por distrito (por falta de acceso al censo),
+          por lo que el índice mide volumen absoluto, no acceso per cápita.
+        - Algunas comunidades muy pequeñas (centros poblados) pueden no estar registradas en el
+          dataset del INEI.
+        - El nivel de complejidad del centro de salud (categorías I-1 a III-E) no está ponderado
+          en el índice actual: un puesto de salud rural y un hospital cuentan igual.
         """
     )
 
@@ -239,69 +244,75 @@ with tab2:
         dist_gdf = load_district_gdf()
         comparison_df = load_comparison()
 
-        st.subheader("Q1 – Disponibilidad territorial de IPRESS")
+        st.subheader("Q1 – ¿Cuántos centros de salud (IPRESS) tiene cada distrito?")
         st.markdown(
-            "Distribución del número de establecimientos IPRESS por distrito. "
-            "La distribución es fuertemente asimétrica: pocos distritos concentran muchos "
-            "establecimientos mientras la mayoría tiene muy pocos o ninguno."
+            "Distribución del número de centros de salud (IPRESS) por distrito. "
+            "La distribución es muy desigual: unos pocos distritos concentran muchos "
+            "establecimientos mientras la gran mayoría tiene muy pocos o ninguno."
         )
         _show_image("01_facility_distribution.png")
 
         st.markdown("---")
-        st.subheader("Q1 – Actividad de emergencias")
+        st.subheader("Q1 – ¿Qué tan activos son los centros de salud en atención de emergencias?")
         st.markdown(
-            "Top 20 distritos por atenciones de emergencia y relación entre disponibilidad "
-            "y actividad. La correlación imperfecta indica que algunos distritos tienen "
-            "muchos establecimientos pero poca actividad registrada (posible subregistro o "
-            "infrautilización), y viceversa."
+            "Top 20 distritos por total de atenciones de emergencia registradas, y relación "
+            "entre cantidad de centros de salud y atenciones. La relación imperfecta entre "
+            "ambas variables indica que algunos distritos tienen muchos centros de salud "
+            "pero pocas atenciones registradas (posible subregistro o baja utilización), "
+            "y viceversa."
         )
         _show_image("02_emergency_activity.png")
 
         st.markdown("---")
-        st.subheader("Q2 – Acceso espacial de los centros poblados")
+        st.subheader("Q2 – ¿Qué tan cerca están las comunidades de un centro de salud?")
         st.markdown(
-            "Distribución de la distancia media (km) al IPRESS más cercano y porcentaje "
-            "de centros poblados a más de 10 km. Revela que gran parte de los centros "
-            "poblados en distritos rurales y remotos están muy lejos de cualquier establecimiento."
+            "Distribución de la distancia promedio (km) al centro de salud (IPRESS) más cercano "
+            "y porcentaje de comunidades (centros poblados) a más de 10 km. "
+            "Revela que una gran parte de las comunidades en distritos rurales y remotos "
+            "está muy lejos de cualquier establecimiento de salud."
         )
         _show_image("03_distance_distribution.png")
 
         st.markdown("---")
-        st.subheader("Q3 – Coherencia de los componentes del IASE")
+        st.subheader("Q3 – ¿Los tres componentes del índice (IASE) miden cosas distintas?")
         st.markdown(
-            "Correlación entre disponibilidad, actividad y acceso espacial. "
-            "Baja correlación entre componentes justifica incluirlos todos: "
-            "miden aspectos distintos del acceso."
+            "Relación entre disponibilidad (N° de centros de salud), actividad (emergencias "
+            "atendidas) y acceso espacial (distancia al centro de salud más cercano). "
+            "Si los componentes tienen poca correlación entre sí, significa que cada uno "
+            "aporta información nueva y vale la pena incluir los tres en el índice."
         )
         _show_image("04_component_correlation.png")
 
         st.markdown("---")
-        st.subheader("Q3 – Ranking distrital (IASE baseline)")
+        st.subheader("Q3 – Ranking de distritos: ¿quiénes tienen mejor y peor acceso?")
         st.markdown(
-            "Distritos con mayor y menor acceso a servicios de emergencia según el IASE baseline. "
-            "Los distritos con mejor acceso típicamente están en zonas urbanas o capitales de provincia."
+            "Distritos con mayor y menor acceso a servicios de emergencia según el IASE "
+            "(índice de acceso a emergencias) en su versión base. "
+            "Los distritos mejor posicionados suelen ser zonas urbanas o capitales de provincia."
         )
         _show_image("05_top_bottom_districts.png")
 
         st.markdown("---")
-        st.subheader("Q4 – Sensibilidad metodológica")
+        st.subheader("Q4 – ¿Cambian los resultados al ajustar los pesos del índice?")
         st.markdown(
-            "Comparación entre baseline y especificación alternativa. "
-            "El scatter muestra concordancia general, pero el histograma de cambio de rango "
-            "indica que algunos distritos se ven significativamente afectados al darle más peso "
-            "al acceso espacial, especialmente distritos con muchos IPRESS pero mal distribuidos."
+            "Comparación entre la versión base y la versión alternativa del IASE "
+            "(índice de acceso a emergencias). "
+            "El diagrama de puntos muestra que ambas versiones coinciden en términos generales, "
+            "pero el histograma de cambios de posición revela que algunos distritos suben o "
+            "bajan mucho al darle más peso a la distancia, especialmente aquellos con muchos "
+            "centros de salud (IPRESS) pero mal distribuidos en su territorio."
         )
         _show_image("06_baseline_vs_alternative.png")
 
         # Tabla resumen
         if comparison_df is not None:
             st.markdown("---")
-            st.subheader("Tabla: cambios de clase entre especificaciones")
+            st.subheader("Tabla: distritos que cambiaron de categoría de acceso al ajustar la fórmula")
             if "clase_change" in comparison_df.columns:
                 changed = comparison_df[comparison_df["clase_change"] == True]
                 n_changed = len(changed)
                 pct = n_changed / len(comparison_df) * 100
-                st.metric("Distritos que cambiaron de clase", f"{n_changed} ({pct:.1f}%)")
+                st.metric("Distritos que cambiaron de categoría de acceso", f"{n_changed} ({pct:.1f}%)")
                 st.dataframe(
                     changed[
                         [c for c in ["ubigeo", "distrito", "departamento",
@@ -328,36 +339,39 @@ with tab3:
         if dist_table is not None:
             with col1:
                 n_sin_ipress = (dist_table["n_ipress"] == 0).sum() if "n_ipress" in dist_table.columns else "N/D"
-                st.metric("Distritos sin IPRESS", str(n_sin_ipress))
+                st.metric("Distritos sin ningún centro de salud (IPRESS)", str(n_sin_ipress))
             with col2:
                 if "dist_media_km" in dist_table.columns:
                     med_dist = dist_table["dist_media_km"].median()
-                    st.metric("Distancia mediana al IPRESS (km)", f"{med_dist:.1f}")
+                    st.metric("Distancia promedio al centro de salud más cercano (km)", f"{med_dist:.1f}")
             with col3:
                 if "IASE_base" in dist_table.columns:
-                    st.metric("Score IASE promedio", f"{dist_table['IASE_base'].mean():.3f}")
+                    st.metric("Puntuación promedio del índice de acceso (IASE)", f"{dist_table['IASE_base'].mean():.3f}")
 
         st.markdown("---")
-        st.subheader("Mapa 1 – Densidad de IPRESS por distrito")
-        st.markdown("Mayor intensidad de color = más establecimientos en el distrito.")
+        st.subheader("Mapa 1 – N° de centros de salud (IPRESS) por distrito")
+        st.markdown("Mayor intensidad de color = más centros de salud en el distrito.")
         _show_image("map_01_facility_density.png")
 
         st.markdown("---")
-        st.subheader("Mapa 2 – Distancia media al IPRESS más cercano")
-        st.markdown("Distritos en rojo tienen centros poblados muy alejados de cualquier establecimiento.")
+        st.subheader("Mapa 2 – Distancia promedio al centro de salud más cercano")
+        st.markdown(
+            "Distritos en rojo tienen comunidades (centros poblados) muy alejadas de cualquier "
+            "centro de salud (IPRESS)."
+        )
         _show_image("map_02_distance_access.png")
 
         st.markdown("---")
-        st.subheader("Mapa 3 – IASE Baseline (pesos iguales)")
+        st.subheader("Mapa 3 – Índice de acceso a emergencias (IASE) – versión base")
         _show_image("map_03_IASE_base.png")
 
         st.markdown("---")
-        st.subheader("Mapa 4 – Comparación baseline vs especificación alternativa")
+        st.subheader("Mapa 4 – Comparación entre versión base y versión alternativa del índice")
         _show_image("map_04_comparison.png")
 
         # Tabla distrital filtrable
         st.markdown("---")
-        st.subheader("Tabla distrital completa")
+        st.subheader("Tabla completa de indicadores por distrito")
         if dist_table is not None:
             dept_list = ["Todos"] + sorted(dist_table["departamento"].dropna().unique().tolist()) \
                 if "departamento" in dist_table.columns else ["Todos"]
@@ -400,50 +414,54 @@ with tab4:
 
         map_option = st.radio(
             "Selecciona el mapa a visualizar:",
-            ["IASE Baseline", "IASE Alternativa", "Establecimientos IPRESS"],
+            [
+                "IASE base (pesos iguales)",
+                "IASE alternativa (mayor peso en distancia)",
+                "Centros de salud (IPRESS)",
+            ],
             horizontal=True,
         )
 
         from src.visualization import folium_iase_map, folium_facilities_map
 
-        if map_option == "IASE Baseline":
+        if map_option == "IASE base (pesos iguales)":
             st.markdown(
-                "**Mapa interactivo del IASE Baseline.** "
+                "**Mapa interactivo del IASE base** (índice con pesos iguales entre los tres componentes). "
                 "Haz clic sobre un distrito para ver sus indicadores. "
-                "Verde = mejor acceso, Rojo = peor acceso."
+                "Verde = mejor acceso, Rojo = menor acceso."
             )
             if "IASE_base" in dist_gdf.columns:
                 m = folium_iase_map(dist_gdf, "IASE_base")
                 st_folium(m, width=1100, height=650)
             else:
-                st.warning("IASE baseline no calculado. Ejecuta el pipeline primero.")
+                st.warning("Índice IASE base no calculado. Ejecuta el pipeline primero.")
 
-        elif map_option == "IASE Alternativa":
+        elif map_option == "IASE alternativa (mayor peso en distancia)":
             st.markdown(
-                "**Mapa interactivo del IASE Alternativa** (mayor peso en acceso espacial). "
-                "Compara con el baseline para ver qué distritos cambian de posición."
+                "**Mapa interactivo del IASE alternativa** (mayor peso en la distancia al centro de salud). "
+                "Compara con la versión base para ver qué distritos cambian de posición."
             )
             if "IASE_alt" in dist_gdf.columns:
                 m = folium_iase_map(dist_gdf, "IASE_alt")
                 st_folium(m, width=1100, height=650)
             else:
-                st.warning("IASE alternativa no calculada. Ejecuta el pipeline primero.")
+                st.warning("Índice IASE alternativa no calculado. Ejecuta el pipeline primero.")
 
-        elif map_option == "Establecimientos IPRESS":
+        elif map_option == "Centros de salud (IPRESS)":
             st.markdown(
-                "**Mapa de establecimientos IPRESS** sobre fondo de IASE baseline. "
+                "**Mapa de centros de salud (IPRESS)** sobre el fondo del índice de acceso base. "
                 "Los marcadores están agrupados; haz zoom para verlos individualmente."
             )
             if ipress_gdf is not None:
                 m = folium_facilities_map(ipress_gdf, dist_gdf)
                 st_folium(m, width=1100, height=650)
             else:
-                st.warning("Datos IPRESS no encontrados en data/processed/ipress_clean.csv")
+                st.warning("Datos de centros de salud no encontrados en data/processed/ipress_clean.csv")
 
         # Comparación interactiva baseline vs alternativa
         if comparison_df is not None and "IASE_base" in comparison_df.columns:
             st.markdown("---")
-            st.subheader("Q4 – Comparación por departamento: baseline vs alternativa")
+            st.subheader("Q4 – Comparación por departamento: versión base vs versión alternativa del índice")
             if "departamento" in comparison_df.columns:
                 dept_sel = st.selectbox(
                     "Departamento", sorted(comparison_df["departamento"].dropna().unique()),
@@ -456,14 +474,14 @@ with tab4:
                 fig, ax = plt.subplots(figsize=(10, 6))
                 x = range(len(df_plot))
                 ax.bar([i - 0.2 for i in x], df_plot["IASE_base"], 0.4,
-                       label="Baseline", color="#2171b5", alpha=0.85)
+                       label="Versión base", color="#2171b5", alpha=0.85)
                 if "IASE_alt" in df_plot.columns:
                     ax.bar([i + 0.2 for i in x], df_plot["IASE_alt"], 0.4,
-                           label="Alternativa", color="#e6550d", alpha=0.85)
+                           label="Versión alternativa", color="#e6550d", alpha=0.85)
                 ax.set_xticks(list(x))
                 ax.set_xticklabels(df_plot[id_col].astype(str), rotation=45, ha="right", fontsize=8)
-                ax.set_ylabel("Score IASE")
-                ax.set_title(f"IASE Baseline vs Alternativa – {dept_sel}")
+                ax.set_ylabel("Puntuación del índice de acceso (IASE)")
+                ax.set_title(f"Índice de acceso (IASE): versión base vs alternativa – {dept_sel}")
                 ax.legend()
                 plt.tight_layout()
                 st.pyplot(fig)
